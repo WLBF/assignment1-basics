@@ -15,7 +15,7 @@ for token in [bytes(word, 'utf-8') for word in corpus.split()]:
 print(pre_tokens)
 
 for _ in range(6):
-    # print('===================')
+    print('===================')
     pairs = {}
     for pt, cnt in pre_tokens.items():
         pt_bytes = list(pt)
@@ -23,7 +23,7 @@ for _ in range(6):
             p = (pt_bytes[i], pt_bytes[i+1])
             pairs[p] = pairs.get(p, 0) + cnt
 
-    # print(pairs)
+    print(pairs)
     max_pair, max_cnt = max(pairs.items(), key=lambda item: (item[1], item[0]))
     # print(max_pair, max_cnt)    
     vocab.append(max_pair[0] + max_pair[1])
@@ -45,7 +45,7 @@ for _ in range(6):
         new_pt = tuple(new_pt_bytes)
         pre_tokens[new_pt] = pre_tokens.pop(pt)
 
-    # print('-----------------------------')
+    print('-----------------------------')
     # print(pre_tokens)
 
-print(vocab)
+print(len(vocab), vocab)
