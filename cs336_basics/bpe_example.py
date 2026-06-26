@@ -4,7 +4,7 @@ lower lower widest widest widest
 newest newest newest newest newest newest
 """
 
-vocab = [''] + [bytes([i]) for i in range(256)]
+vocab = ['<|endoftext|>'] + [bytes([i]) for i in range(256)]
 
 pre_tokens = {}
 
