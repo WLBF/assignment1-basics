@@ -14,7 +14,8 @@ from cs336_basics.train_bpe import train_bpe
 from cs336_basics.linear import Linear
 from cs336_basics.embedding import Embedding
 from cs336_basics.rmsnorm import RMSNorm
-from cs336_basics.positionwise_feedforward import SiLU, SwiGLU, RotaryPositionalEmbedding
+from cs336_basics.positionwise_feedforward import silu, SwiGLU, RotaryPositionalEmbedding
+from cs336_basics.softmax import softmax
 
 
 def run_linear(
@@ -405,8 +406,7 @@ def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
         Float[Tensor,"..."]: of with the same shape as `in_features` with the output of applying
         SiLU to each element.
     """
-    silu = SiLU()
-    return silu.forward(in_features)
+    return silu(in_features)
 
 
 def run_get_batch(
@@ -445,7 +445,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    raise NotImplementedError
+    return softmax(in_features, dim=dim)
 
 
 def run_cross_entropy(
