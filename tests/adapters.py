@@ -14,8 +14,9 @@ from cs336_basics.train_bpe import train_bpe
 from cs336_basics.linear import Linear
 from cs336_basics.embedding import Embedding
 from cs336_basics.rmsnorm import RMSNorm
-from cs336_basics.positionwise_feedforward import silu, SwiGLU, RotaryPositionalEmbedding
+from cs336_basics.positionwise_feedforward import silu, SwiGLU, RotaryEmbedding, RotaryPositionalEmbedding
 from cs336_basics.softmax import softmax
+from cs336_basics.attention import scaled_dot_product_attention, MultiHeadSelfAttention
 
 
 def run_linear(
@@ -115,7 +116,7 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    raise NotImplementedError
+    return scaled_dot_product_attention(Q, K, V, mask)
 
 
 def run_multihead_self_attention(
@@ -149,7 +150,12 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_model"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    multihead_self_attention = MultiHeadSelfAttention(d_model=d_model, num_heads=num_heads)
+    multihead_self_attention.w_q.weight.data = q_proj_weight
+    multihead_self_attention.w_k.weight.data = k_proj_weight
+    multihead_self_attention.w_v.weight.data = v_proj_weight
+    multihead_self_attention.w_o.weight.data = o_proj_weight
+    return multihead_self_attention(in_features)
 
 
 def run_multihead_self_attention_with_rope(
@@ -189,7 +195,12 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_model"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    multihead_self_attention = MultiHeadSelfAttention(d_model=d_model, num_heads=num_heads, max_seq_len=max_seq_len, theta=theta)
+    multihead_self_attention.w_q.weight.data = q_proj_weight
+    multihead_self_attention.w_k.weight.data = k_proj_weight
+    multihead_self_attention.w_v.weight.data = v_proj_weight
+    multihead_self_attention.w_o.weight.data = o_proj_weight
+    return multihead_self_attention(in_features, token_positions)
 
 
 def run_rope(

@@ -1,5 +1,9 @@
 import torch
 from .linear import Linear
+from torch import Tensor
+from einops import rearrange, einsum
+import einx
+from jaxtyping import Bool, Float, Int
 
 def silu(x: torch.Tensor) -> torch.Tensor:
     return x * torch.sigmoid(x)
@@ -57,3 +61,50 @@ class RotaryPositionalEmbedding(torch.nn.Module):
         out = torch.stack([rot1, rot2], dim=-1)
 
         return out.flatten(-2)
+
+# Copyed from: assignment2-systems/blob/main/cs336-basics/cs336_basics/model.py
+class RotaryEmbedding(torch.nn.Module):
+    def __init__(self, context_length: int, dim: int, theta: float = 10000.0):
+        super().__init__()
+        self.register_buffer(
+            "_freq_cis_cache", RotaryEmbedding._init_cache(context_length, dim, theta), persistent=False
+        )
+        self._freq_cis_cache: Float[Tensor, "2 context_length half_dim"]
+
+    @staticmethod
+    def _init_cache(context_length: int, dim: int, theta: float) -> Float[Tensor, " 2 context_length half_dim"]:
+        assert dim % 2 == 0
+
+        d = torch.arange(0, dim, 2) / dim
+        freqs = torch.tensor(theta) ** -d
+        t = torch.arange(context_length)
+
+        freqs = einsum(t, freqs, "t, f -> t f")
+
+        cos, sin = torch.cos(freqs), torch.sin(freqs)
+        return torch.stack((cos, sin))
+
+    def forward(
+        self, x: Float[Tensor, " ... seq d"], pos_ids: Int[Tensor, " ... seq"] | None
+    ) -> Float[Tensor, " ... seq d"]:
+        x1, x2 = rearrange(x, "... (half_d xy) -> xy ... half_d", xy=2).unbind(0)
+
+        # Standard
+        # cos, sin = self._freq_cis_cache[:, pos_ids, :]
+
+        # einx
+        if pos_ids is not None:
+            cos, sin = einx.get_at("cos_sin [pos] half_dim, ... -> cos_sin ... half_dim", self._freq_cis_cache, pos_ids)
+        else:
+            seq_len = x.size(-2)
+            cos, sin = self._freq_cis_cache[:, :seq_len, :].unbind(0)
+
+        # 2D rotation matrix applied to pairs in x
+        x1_rot = cos * x1 - sin * x2
+        x2_rot = sin * x1 + cos * x2
+        # result = einx.id("... x_half, ... x_half -> ... (x_half (1 + 1))", x1_rot, x2_rot).contiguous()
+        result = torch.concat((x1_rot, x2_rot), dim=-1)
+        return result
+
+    def extra_repr(self):
+        return f"context_length={self._freq_cis_cache.shape[0]}, dim/2={self._freq_cis_cache.shape[1]}"
